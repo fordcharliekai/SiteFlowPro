@@ -2,6 +2,7 @@
 CREATE TABLE leads (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_name TEXT NOT NULL,
+    slug TEXT UNIQUE, -- Added for direct slug-based access
     phone TEXT,
     email TEXT,
     address TEXT,

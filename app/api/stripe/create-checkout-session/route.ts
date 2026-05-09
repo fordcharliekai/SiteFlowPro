@@ -13,7 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing leadId or slug' }, { status: 400 });
     }
 
-    const origin = req.headers.get('origin') || 'https://siteflowpro.vercel.app';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get('origin') || 'https://siteflowpro.vercel.app';
+
+    console.log('Creating Stripe session for:', { leadId, slug, siteUrl });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -24,8 +26,8 @@ export async function POST(req: Request) {
         },
       ],
       mode: 'subscription',
-      success_url: `${origin}/${slug}?success=true`,
-      cancel_url: `${origin}/${slug}?canceled=true`,
+      success_url: `${siteUrl}/${slug}?success=true`,
+      cancel_url: `${siteUrl}/${slug}?canceled=true`,
       metadata: {
         leadId,
       },

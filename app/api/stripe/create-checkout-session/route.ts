@@ -2,22 +2,29 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27-acacia' as any,
+  apiVersion: '2023-10-16' as any, 
 });
 
 export async function POST(req: Request) {
   try {
-    const { leadId, slug } = await req.json();
+    const body = await req.json();
+    const { leadId, slug } = body;
 
     if (!leadId || !slug) {
       return NextResponse.json({ error: 'Missing leadId or slug' }, { status: 400 });
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.headers.get('origin') || 'https://siteflowpro.vercel.app';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://siteflowpro.vercel.app';
 
-    console.log('Creating Stripe session for:', { leadId, slug, siteUrl });
+    console.log('Creating Stripe Checkout Session:', {
+      leadId,
+      slug,
+      siteUrl,
+      priceId: process.env.STRIPE_PRICE_ID_MONTHLY
+    });
 
     const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
         {
@@ -25,17 +32,28 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
-      success_url: `${siteUrl}/${slug}?success=true`,
-      cancel_url: `${siteUrl}/${slug}?canceled=true`,
+      success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/cancel`,
       metadata: {
         leadId,
+        slug
       },
     });
 
+    if (!session.url) {
+      throw new Error('Stripe session creation failed to return a URL');
+    }
+
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error('Stripe Checkout Error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Stripe Checkout failure:', {
+        message: err.message,
+        type: err.type,
+        stack: err.stack
+    });
+    return NextResponse.json({ 
+        error: err.message,
+        type: err.type
+    }, { status: 500 });
   }
 }

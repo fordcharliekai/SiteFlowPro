@@ -1,76 +1,95 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
-import { notFound } from 'next/navigation';
+import ClaimButton from './ClaimButton';
 
-export default async function SiteTemplate({ params }: { params: { slug: string } }) {
+export default async function PublicLeadPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: site, error } = await supabase
-    .from('sites')
-    .select('*, leads(*)')
+  const { data: lead, error } = await supabase
+    .from('leads')
+    .select('*')
     .eq('slug', slug)
     .single();
 
-  if (error || !site) {
-    // Fallback if not found in database, or show a 404
-    if (slug === 'pimlico-plumbers') {
-        return <SiteContent businessName="Pimlico Plumbers (Demo)" services={['Emergency Repairs', 'Boiler Installation', 'Leak Detection']} />;
-    }
-    return notFound();
+  if (error || !lead) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-gray-500">Business not found</h1>
+      </div>
+    );
   }
 
-  const businessName = site.leads.business_name;
-  const services = site.content.services || ['Professional Services'];
-
-  return <SiteContent businessName={businessName} services={services} />;
-}
-
-function SiteContent({ businessName, services }: { businessName: string, services: string[] }) {
   return (
     <div className="min-h-screen bg-white">
-      <nav className="p-6 flex justify-between items-center border-b border-gray-100">
-        <div className="text-2xl font-bold text-gray-900">{businessName}</div>
-        <a href="#contact" className="bg-gray-900 text-white px-6 py-2 rounded-full font-medium">Contact Us</a>
+      {/* Hero Section */}
+      <nav className="p-6 border-b border-gray-100 flex justify-between items-center">
+        <div className="text-2xl font-bold text-gray-900">{lead.business_name}</div>
+        <div className="text-sm text-gray-500 hidden md:block">{lead.address}</div>
       </nav>
 
-      <section className="py-20 px-6 text-center max-w-4xl mx-auto">
-        <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
-          Reliable Services for {businessName}
-        </h1>
-        <p className="text-xl text-gray-600 mb-10">
-          Professional, licensed experts available 24/7. Quality workmanship guaranteed.
-        </p>
-        <a href="#contact" className="bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:bg-blue-700 transition-all">
-          Get a Free Quote
-        </a>
-      </section>
-
-      <section className="py-20 bg-gray-50 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          {services.map((service, i) => (
-            <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-xl font-bold mb-3">{service}</h3>
-              <p className="text-gray-600">Premium service delivered by local experts with years of experience.</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="py-10 bg-blue-600 text-center text-white px-6">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold mb-4">Claim this website for your business</h2>
-          <p className="mb-8 text-blue-100 opacity-90 text-lg">
-            This is a draft version created by SiteFlowPro. Claim it for just $49/month to go live on your own domain.
+      <main className="max-w-4xl mx-auto py-20 px-6">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6">
+            Professional Services in {lead.city || 'your area'}
+          </h1>
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            High-quality workmanship and reliable service for all your business needs. 
+            Contact us today to find out how we can help you.
           </p>
-          <button className="bg-white text-blue-600 px-8 py-4 rounded-full text-xl font-black shadow-xl transform hover:scale-105 transition-all">
-            CLAIM NOW ($49/mo)
-          </button>
         </div>
-      </section>
 
-      <footer className="py-10 text-center text-gray-400 text-sm">
-        &copy; 2026 {businessName}. Powered by SiteFlowPro.
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
+          <div className="bg-gray-50 p-8 rounded-3xl">
+            <h2 className="text-2xl font-bold mb-6 text-gray-900">Contact Information</h2>
+            <div className="space-y-4">
+              <p className="flex items-center text-gray-700">
+                <span className="font-bold w-20">Phone:</span> {lead.phone || 'TBC'}
+              </p>
+              <p className="flex items-center text-gray-700">
+                <span className="font-bold w-20">Email:</span> {lead.email || 'TBC'}
+              </p>
+              <p className="flex items-start text-gray-700">
+                <span className="font-bold w-20">Address:</span> 
+                <span className="flex-1">{lead.address || 'Local Service'}</span>
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-blue-600 p-8 rounded-3xl text-white flex flex-col justify-center">
+            <h2 className="text-2xl font-bold mb-4">Claim This Website</h2>
+            <p className="mb-8 text-blue-100">
+              Get this professional one-page website live on your own domain for just £49/month. 
+              Increase your visibility and attract more customers.
+            </p>
+            <ClaimButton leadId={lead.id} slug={slug} />
+          </div>
+        </div>
+
+        <section className="border-t border-gray-100 pt-20">
+          <h2 className="text-3xl font-bold mb-12 text-center">Our Core Values</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold">1</div>
+              <h3 className="font-bold mb-2">Reliability</h3>
+              <p className="text-gray-600 text-sm">We show up on time and deliver what we promise, every single time.</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold">2</div>
+              <h3 className="font-bold mb-2">Quality</h3>
+              <p className="text-gray-600 text-sm">Only the best materials and techniques for our valued clients.</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold">3</div>
+              <h3 className="font-bold mb-2">Integrity</h3>
+              <p className="text-gray-600 text-sm">Transparent pricing and honest advice for every project.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="py-10 text-center text-gray-400 text-sm border-t border-gray-50">
+        &copy; 2026 {lead.business_name}. Powered by SiteFlowPro.
       </footer>
     </div>
   );

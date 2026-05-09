@@ -1,6 +1,32 @@
 import React from 'react';
+import { createClient } from '@/utils/supabase/server';
+import { notFound } from 'next/navigation';
 
-const SiteTemplate = ({ businessName = 'London Plumbers Experts', services = ['Emergency Repairs', 'Boiler Installation', 'Leak Detection'] }) => {
+export default async function SiteTemplate({ params }: { params: { slug: string } }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  const { data: site, error } = await supabase
+    .from('sites')
+    .select('*, leads(*)')
+    .eq('slug', slug)
+    .single();
+
+  if (error || !site) {
+    // Fallback if not found in database, or show a 404
+    if (slug === 'pimlico-plumbers') {
+        return <SiteContent businessName="Pimlico Plumbers (Demo)" services={['Emergency Repairs', 'Boiler Installation', 'Leak Detection']} />;
+    }
+    return notFound();
+  }
+
+  const businessName = site.leads.business_name;
+  const services = site.content.services || ['Professional Services'];
+
+  return <SiteContent businessName={businessName} services={services} />;
+}
+
+function SiteContent({ businessName, services }: { businessName: string, services: string[] }) {
   return (
     <div className="min-h-screen bg-white">
       <nav className="p-6 flex justify-between items-center border-b border-gray-100">
@@ -10,10 +36,10 @@ const SiteTemplate = ({ businessName = 'London Plumbers Experts', services = ['E
 
       <section className="py-20 px-6 text-center max-w-4xl mx-auto">
         <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
-          Reliable Plumbing Services in London
+          Reliable Services for {businessName}
         </h1>
         <p className="text-xl text-gray-600 mb-10">
-          Professional, licensed plumbers available 24/7. Quality workmanship guaranteed.
+          Professional, licensed experts available 24/7. Quality workmanship guaranteed.
         </p>
         <a href="#contact" className="bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:bg-blue-700 transition-all">
           Get a Free Quote
@@ -25,7 +51,7 @@ const SiteTemplate = ({ businessName = 'London Plumbers Experts', services = ['E
           {services.map((service, i) => (
             <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-xl font-bold mb-3">{service}</h3>
-              <p className="text-gray-600">Premium service delivered by local experts with years of experience in London.</p>
+              <p className="text-gray-600">Premium service delivered by local experts with years of experience.</p>
             </div>
           ))}
         </div>
@@ -48,6 +74,4 @@ const SiteTemplate = ({ businessName = 'London Plumbers Experts', services = ['E
       </footer>
     </div>
   );
-};
-
-export default SiteTemplate;
+}

@@ -1,18 +1,32 @@
 import React from 'react';
 import { LayoutDashboard, Users, Globe, PoundSterling, Power } from 'lucide-react';
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
 
-const AdminDashboard = () => {
+export default async function AdminDashboard() {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect('/login');
+  }
+
+  // Fetch real leads from Supabase
+  const { data: leads, error } = await supabase
+    .from('leads')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  // Fetch stats (mocked or simplified for now)
+  const { count: leadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+  const { count: sitesCount } = await supabase.from('sites').select('*', { count: 'exact', head: true });
+
   const stats = [
-    { label: 'Leads Found', value: '124', icon: <Users className="w-5 h-5" /> },
-    { label: 'Sites Generated', value: '42', icon: <Globe className="w-5 h-5" /> },
-    { label: 'Emails Sent', value: '88', icon: <Power className="w-5 h-5" /> },
-    { label: 'Revenue', value: '£2,058', icon: <PoundSterling className="w-5 h-5" /> },
-  ];
-
-  const leads = [
-    { name: 'Pimlico Plumbers', city: 'London', status: 'Draft Created' },
-    { name: 'South London Plumbing', city: 'London', status: 'Email Sent' },
-    { name: 'West End Plumbers', city: 'London', status: 'No Email' },
+    { label: 'Leads Found', value: leadsCount || 0, icon: <Users className="w-5 h-5" /> },
+    { label: 'Sites Generated', value: sitesCount || 0, icon: <Globe className="w-5 h-5" /> },
+    { label: 'Emails Sent', value: '0', icon: <Power className="w-5 h-5" /> },
+    { label: 'Revenue', value: '£0', icon: <PoundSterling className="w-5 h-5" /> },
   ];
 
   return (
@@ -20,7 +34,12 @@ const AdminDashboard = () => {
       <div className="max-w-6xl mx-auto">
         <header className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">SiteFlowPro Admin</h1>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">Pause Automation</button>
+          <div className="flex gap-4">
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">Pause Automation</button>
+            <form action="/auth/signout" method="post">
+              <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium" type="submit">Sign Out</button>
+            </form>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -49,18 +68,24 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {leads.map((lead, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">{lead.name}</td>
-                  <td className="px-6 py-4 text-gray-600">{lead.city}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{lead.status}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="text-blue-600 hover:underline text-sm font-medium">View Site</button>
-                  </td>
+              {leads && leads.length > 0 ? (
+                leads.map((lead, i) => (
+                  <tr key={i} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">{lead.business_name}</td>
+                    <td className="px-6 py-4 text-gray-600">{lead.city}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{lead.website_status}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button className="text-blue-600 hover:underline text-sm font-medium">View Site</button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">No leads found yet.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -68,5 +93,3 @@ const AdminDashboard = () => {
     </div>
   );
 };
-
-export default AdminDashboard;

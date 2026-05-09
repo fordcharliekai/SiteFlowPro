@@ -1,6 +1,10 @@
 import { login } from './actions'
+import { ensureAdminExists } from '@/utils/seed'
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Startup check: Ensure admin exists in Supabase Auth
+  await ensureAdminExists()
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-md border border-gray-100">
